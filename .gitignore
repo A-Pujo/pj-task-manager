@@ -1,0 +1,144 @@
+# ==================================================
+# pj-task-manager .gitignore
+# Covers macOS, Node (React + TypeScript) frontend,
+# and Go backend, plus common IDE/editor and env files
+# ==================================================
+
+# --------------------
+# macOS
+# --------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \
+Icon\r
+
+# Thumbnails and other macOS metadata
+._*
+
+# --------------------
+# Node / frontend (React + TypeScript)
+# --------------------
+# dependencies
+frontend/node_modules/
+
+# build outputs
+frontend/build/
+frontend/dist/
+
+# logs
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# lockfiles (optional: if you want to ignore lock files, keep these)
+frontend/package-lock.json
+frontend/pnpm-lock.yaml
+
+# TypeScript
+frontend/*.tsbuildinfo
+
+# env files
+frontend/.env
+frontend/.env.*
+
+# test
+frontend/coverage/
+
+# --------------------
+# Go / backend
+# --------------------
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary, build output
+*.test
+
+# Output of the go coverage tool
+*.cover
+
+# Go build and install output (common locations)
+backend/bin/
+backend/build/
+
+# If you keep compiled binaries at repository root
+/bin/
+/build/
+
+# Go workspace file
+go.work
+
+# Go modules cache (should not be committed)
+# If you vendor dependencies, consider ignoring vendor/ instead
+# vendor/
+
+# --------------------
+# Common editor / IDE
+# --------------------
+.vscode/
+.idea/
+*.iml
+
+# JetBrains
+/.idea/
+
+# Sublime
+*.sublime-project
+*.sublime-workspace
+
+# Editors temporary files
+*~
+# swap files
+*.swp
+
+# --------------------
+# Environment & secrets
+# --------------------
+.env
+.env.*
+secrets.env
+
+# --------------------
+# Logs
+# --------------------
+logs/
+*.log
+
+# npm/yarn/lerna logs
+npm-debug.log*
+yarn-debug.log*
+lerna-debug.log*
+
+# --------------------
+# OS generated
+# --------------------
+Thumbs.db
+ehthumbs.db
+
+# --------------------
+# Misc / generated
+# --------------------
+*.tmp
+*.temp
+generated/
+
+# --------------------
+# Optional tools
+# --------------------
+# Terraform state
+*.tfstate
+*.tfstate.*
+
+# IDE specific
+.idea/
+.vscode/
+
+# Keep other lock files out if you don't want them tracked
+yarn.lock
+
+# End of file
+
