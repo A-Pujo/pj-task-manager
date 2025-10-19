@@ -21,9 +21,9 @@ func NewKomentarRepository(db *pgxpool.Pool) *KomentarRepository {
 // GetAll mengambil semua komentar
 func (r *KomentarRepository) GetAll(ctx context.Context) ([]models.KomentarAktivitas, error) {
 	query := `
-		SELECT komentar_id, pengguna_id, isi_komentar, waktu_dibuat, tugas_id, proyek_id
+		SELECT komentar_id, pengguna_id, komentar, dibuat_pada, tugas_id, proyek_id
 		FROM komentar_aktivitas
-		ORDER BY waktu_dibuat DESC
+		ORDER BY dibuat_pada DESC
 	`
 
 	rows, err := r.db.Query(ctx, query)
@@ -52,13 +52,16 @@ func (r *KomentarRepository) GetAll(ctx context.Context) ([]models.KomentarAktiv
 	return komentars, nil
 }
 
-// GetByTugasID mengambil komentar by tugas
+// GetByTugasID mengambil komentar by tugas with user info
 func (r *KomentarRepository) GetByTugasID(ctx context.Context, tugasID int) ([]models.KomentarAktivitas, error) {
 	query := `
-		SELECT komentar_id, pengguna_id, isi_komentar, waktu_dibuat, tugas_id, proyek_id
-		FROM komentar_aktivitas
-		WHERE tugas_id = $1
-		ORDER BY waktu_dibuat DESC
+		SELECT 
+			k.komentar_id, k.pengguna_id, k.komentar, k.dibuat_pada, k.tugas_id, k.proyek_id,
+			p.pengguna_id, p.nama_depan, p.nama_belakang, p.email, p.peran, p.is_aktif, p.terakhir_login, p.dibuat_pada
+		FROM komentar_aktivitas k
+		LEFT JOIN pengguna p ON k.pengguna_id = p.pengguna_id
+		WHERE k.tugas_id = $1
+		ORDER BY k.dibuat_pada DESC
 	`
 
 	rows, err := r.db.Query(ctx, query, tugasID)
@@ -70,6 +73,8 @@ func (r *KomentarRepository) GetByTugasID(ctx context.Context, tugasID int) ([]m
 	var komentars []models.KomentarAktivitas
 	for rows.Next() {
 		var k models.KomentarAktivitas
+		k.Pengguna = &models.Pengguna{}
+		
 		err := rows.Scan(
 			&k.KomentarID,
 			&k.PenggunaID,
@@ -77,6 +82,14 @@ func (r *KomentarRepository) GetByTugasID(ctx context.Context, tugasID int) ([]m
 			&k.WaktuDibuat,
 			&k.TugasID,
 			&k.ProyekID,
+			&k.Pengguna.PenggunaID,
+			&k.Pengguna.NamaDepan,
+			&k.Pengguna.NamaBelakang,
+			&k.Pengguna.Email,
+			&k.Pengguna.Peran,
+			&k.Pengguna.IsAktif,
+			&k.Pengguna.TerakhirLogin,
+			&k.Pengguna.DibuatPada,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("gagal scan row komentar: %w", err)
@@ -87,13 +100,16 @@ func (r *KomentarRepository) GetByTugasID(ctx context.Context, tugasID int) ([]m
 	return komentars, nil
 }
 
-// GetByProyekID mengambil komentar by proyek
+// GetByProyekID mengambil komentar by proyek with user info
 func (r *KomentarRepository) GetByProyekID(ctx context.Context, proyekID int) ([]models.KomentarAktivitas, error) {
 	query := `
-		SELECT komentar_id, pengguna_id, isi_komentar, waktu_dibuat, tugas_id, proyek_id
-		FROM komentar_aktivitas
-		WHERE proyek_id = $1
-		ORDER BY waktu_dibuat DESC
+		SELECT 
+			k.komentar_id, k.pengguna_id, k.komentar, k.dibuat_pada, k.tugas_id, k.proyek_id,
+			p.pengguna_id, p.nama_depan, p.nama_belakang, p.email, p.peran, p.is_aktif, p.terakhir_login, p.dibuat_pada
+		FROM komentar_aktivitas k
+		LEFT JOIN pengguna p ON k.pengguna_id = p.pengguna_id
+		WHERE k.proyek_id = $1
+		ORDER BY k.dibuat_pada DESC
 	`
 
 	rows, err := r.db.Query(ctx, query, proyekID)
@@ -105,6 +121,8 @@ func (r *KomentarRepository) GetByProyekID(ctx context.Context, proyekID int) ([
 	var komentars []models.KomentarAktivitas
 	for rows.Next() {
 		var k models.KomentarAktivitas
+		k.Pengguna = &models.Pengguna{}
+		
 		err := rows.Scan(
 			&k.KomentarID,
 			&k.PenggunaID,
@@ -112,6 +130,14 @@ func (r *KomentarRepository) GetByProyekID(ctx context.Context, proyekID int) ([
 			&k.WaktuDibuat,
 			&k.TugasID,
 			&k.ProyekID,
+			&k.Pengguna.PenggunaID,
+			&k.Pengguna.NamaDepan,
+			&k.Pengguna.NamaBelakang,
+			&k.Pengguna.Email,
+			&k.Pengguna.Peran,
+			&k.Pengguna.IsAktif,
+			&k.Pengguna.TerakhirLogin,
+			&k.Pengguna.DibuatPada,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("gagal scan row komentar: %w", err)
@@ -129,14 +155,10 @@ func (r *KomentarRepository) Create(ctx context.Context, req models.KomentarCrea
 		return nil, fmt.Errorf("komentar harus terkait dengan tugas atau proyek")
 	}
 
-	if req.TugasID != nil && req.ProyekID != nil {
-		return nil, fmt.Errorf("komentar tidak bisa terkait dengan tugas dan proyek sekaligus")
-	}
-
 	query := `
-		INSERT INTO komentar_aktivitas (pengguna_id, isi_komentar, tugas_id, proyek_id)
+		INSERT INTO komentar_aktivitas (pengguna_id, komentar, tugas_id, proyek_id)
 		VALUES ($1, $2, $3, $4)
-		RETURNING komentar_id, pengguna_id, isi_komentar, waktu_dibuat, tugas_id, proyek_id
+		RETURNING komentar_id, pengguna_id, komentar, dibuat_pada, tugas_id, proyek_id
 	`
 
 	var k models.KomentarAktivitas
@@ -181,7 +203,7 @@ func (r *KomentarRepository) Delete(ctx context.Context, id int) error {
 func (r *KomentarRepository) GetWithUser(ctx context.Context, komentarID int) (*models.KomentarWithUser, error) {
 	query := `
 		SELECT 
-			k.komentar_id, k.pengguna_id, k.isi_komentar, k.waktu_dibuat, k.tugas_id, k.proyek_id,
+			k.komentar_id, k.pengguna_id, k.komentar, k.dibuat_pada, k.tugas_id, k.proyek_id,
 			p.pengguna_id, p.nama_depan, p.nama_belakang, p.email, p.peran, 
 			p.is_aktif, p.dibuat_pada, p.terakhir_login, p.oauth_provider, 
 			p.oauth_uid, p.url_foto_profil

@@ -17,28 +17,20 @@ export const proyekApi = {
 
   // Get project by ID
   getById: async (id: number): Promise<Proyek> => {
-    const response = await api.get<ApiResponse<{ proyek: Proyek }>>(
-      `/proyek/${id}`
-    );
-    return response.data.data.proyek;
+    const response = await api.get<ApiResponse<Proyek>>(`/proyek/${id}`);
+    return response.data.data;
   },
 
   // Create project
   create: async (data: CreateProyekInput): Promise<Proyek> => {
-    const response = await api.post<ApiResponse<{ proyek: Proyek }>>(
-      "/proyek",
-      data
-    );
-    return response.data.data.proyek;
+    const response = await api.post<ApiResponse<Proyek>>("/proyek", data);
+    return response.data.data;
   },
 
   // Update project
   update: async (id: number, data: UpdateProyekInput): Promise<Proyek> => {
-    const response = await api.put<ApiResponse<{ proyek: Proyek }>>(
-      `/proyek/${id}`,
-      data
-    );
-    return response.data.data.proyek;
+    const response = await api.put<ApiResponse<Proyek>>(`/proyek/${id}`, data);
+    return response.data.data;
   },
 
   // Delete project

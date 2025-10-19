@@ -469,7 +469,7 @@ Content-Type: application/json
 
 {
   "pengguna_id": 1,
-  "isi_komentar": "Great progress on this task!",
+  "komentar": "Great progress on this task!",
   "tugas_id": 1
 }
 ```
@@ -479,7 +479,7 @@ atau untuk komentar proyek:
 ```json
 {
   "pengguna_id": 1,
-  "isi_komentar": "Project is on track",
+  "komentar": "Project is on track",
   "proyek_id": 1
 }
 ```

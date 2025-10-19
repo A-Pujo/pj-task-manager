@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { proyekApi } from "@/api/proyek";
 import { penggunaApi } from "@/api/pengguna";
 import type {
@@ -9,12 +10,13 @@ import type {
   UpdateProyekInput,
   Pengguna,
 } from "@/types";
-import { Plus, Edit2, Trash2, X, Calendar } from "lucide-react";
+import { Plus, Eye, Trash2, X, Calendar } from "lucide-react";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
 export default function ProyekPage() {
+  const router = useRouter();
   const [proyekList, setProyekList] = useState<Proyek[]>([]);
   const [penggunaList, setPenggunaList] = useState<Pengguna[]>([]);
   const [loading, setLoading] = useState(true);
@@ -197,10 +199,13 @@ export default function ProyekPage() {
 
               <div className="flex gap-2 pt-4 border-t border-gray-200">
                 <button
-                  onClick={() => handleEdit(proyek)}
-                  className="flex-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-sm font-medium"
+                  onClick={() =>
+                    router.push(`/dashboard/proyek/${proyek.proyek_id}`)
+                  }
+                  className="flex-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
                 >
-                  Edit
+                  <Eye className="w-4 h-4" />
+                  Lihat
                 </button>
                 <button
                   onClick={() => handleDelete(proyek.proyek_id)}

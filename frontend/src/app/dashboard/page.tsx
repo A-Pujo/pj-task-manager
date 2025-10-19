@@ -37,7 +37,8 @@ export default function DashboardPage() {
         totalTugas: tugasList?.length || 0,
         totalPengguna: penggunaList?.length || 0,
         tugasPending:
-          tugasList?.filter((t) => t.status === "pending").length || 0,
+          tugasList?.filter((t) => t.status.toLocaleLowerCase() === "pending")
+            .length || 0,
       });
 
       // Ambil 5 proyek terbaru

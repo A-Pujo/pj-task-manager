@@ -16,10 +16,9 @@ export const tugasApi = {
 
   // Get task by ID
   getById: async (id: number): Promise<Tugas> => {
-    const response = await api.get<ApiResponse<{ tugas: Tugas }>>(
-      `/tugas/${id}`
-    );
-    return response.data.data.tugas;
+    const response = await api.get<ApiResponse<any>>(`/tugas/${id}`);
+    // Backend returns TugasWithAssignees, extract just the Tugas part
+    return response.data.data;
   },
 
   // Get tasks by project ID
@@ -32,20 +31,14 @@ export const tugasApi = {
 
   // Create task
   create: async (data: CreateTugasInput): Promise<Tugas> => {
-    const response = await api.post<ApiResponse<{ tugas: Tugas }>>(
-      "/tugas",
-      data
-    );
-    return response.data.data.tugas;
+    const response = await api.post<ApiResponse<Tugas>>("/tugas", data);
+    return response.data.data;
   },
 
   // Update task
   update: async (id: number, data: UpdateTugasInput): Promise<Tugas> => {
-    const response = await api.put<ApiResponse<{ tugas: Tugas }>>(
-      `/tugas/${id}`,
-      data
-    );
-    return response.data.data.tugas;
+    const response = await api.put<ApiResponse<Tugas>>(`/tugas/${id}`, data);
+    return response.data.data;
   },
 
   // Delete task

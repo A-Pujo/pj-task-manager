@@ -40,6 +40,7 @@ func main() {
 	proyekRepo := repository.NewProyekRepository(db.Pool)
 	tugasRepo := repository.NewTugasRepository(db.Pool)
 	komentarRepo := repository.NewKomentarRepository(db.Pool)
+	penugasanRepo := repository.NewPenugasanTugasRepository(db.Pool)
 	log.Println("✅ Repositories initialized")
 
 	// 4. INITIALIZE HANDLERS (Controllers)
@@ -47,6 +48,7 @@ func main() {
 	proyekHandler := handlers.NewProyekHandler(proyekRepo)
 	tugasHandler := handlers.NewTugasHandler(tugasRepo)
 	komentarHandler := handlers.NewKomentarHandler(komentarRepo)
+	penugasanHandler := handlers.NewPenugasanTugasHandler(penugasanRepo)
 	authHandler := handlers.NewAuthHandler(penggunaRepo, cfg)
 	log.Println("✅ Handlers initialized")
 
@@ -63,7 +65,7 @@ func main() {
 	log.Println("✅ Middleware applied")
 
 	// 7. SETUP ROUTES
-	setupRoutes(router, penggunaHandler, proyekHandler, tugasHandler, komentarHandler, authHandler)
+	setupRoutes(router, penggunaHandler, proyekHandler, tugasHandler, komentarHandler, penugasanHandler, authHandler)
 	log.Println("✅ Routes configured")
 
 	// 8. CREATE HTTP SERVER
@@ -109,6 +111,7 @@ func setupRoutes(
 	proyekHandler *handlers.ProyekHandler,
 	tugasHandler *handlers.TugasHandler,
 	komentarHandler *handlers.KomentarHandler,
+	penugasanHandler *handlers.PenugasanTugasHandler,
 	authHandler *handlers.AuthHandler,
 ) {
 	// Health check endpoint
@@ -132,11 +135,12 @@ func setupRoutes(
 		// PENGGUNA ROUTES
 		pengguna := v1.Group("/pengguna")
 		{
-			pengguna.GET("", penggunaHandler.GetAll)       // GET /api/v1/pengguna
-			pengguna.GET("/:id", penggunaHandler.GetByID)  // GET /api/v1/pengguna/:id
-			pengguna.POST("", penggunaHandler.Create)      // POST /api/v1/pengguna
-			pengguna.PUT("/:id", penggunaHandler.Update)   // PUT /api/v1/pengguna/:id
-			pengguna.DELETE("/:id", penggunaHandler.Delete)// DELETE /api/v1/pengguna/:id
+			pengguna.GET("", penggunaHandler.GetAll)                    // GET /api/v1/pengguna
+			pengguna.GET("/:id", penggunaHandler.GetByID)               // GET /api/v1/pengguna/:id
+			pengguna.GET("/:id/tugas", penugasanHandler.GetUserTasks)   // GET /api/v1/pengguna/:id/tugas
+			pengguna.POST("", penggunaHandler.Create)                   // POST /api/v1/pengguna
+			pengguna.PUT("/:id", penggunaHandler.Update)                // PUT /api/v1/pengguna/:id
+			pengguna.DELETE("/:id", penggunaHandler.Delete)             // DELETE /api/v1/pengguna/:id
 		}
 
 		// PROYEK ROUTES
@@ -154,14 +158,16 @@ func setupRoutes(
 		// TUGAS ROUTES
 		tugas := v1.Group("/tugas")
 		{
-			tugas.GET("", tugasHandler.GetAll)                       // GET /api/v1/tugas
-			tugas.GET("/:id", tugasHandler.GetByID)                  // GET /api/v1/tugas/:id
-			tugas.GET("/:id/komentar", komentarHandler.GetByTugasID) // GET /api/v1/tugas/:id/komentar
-			tugas.POST("", tugasHandler.Create)                      // POST /api/v1/tugas
-			tugas.POST("/:id/assign", tugasHandler.AssignUser)       // POST /api/v1/tugas/:id/assign
-			tugas.PUT("/:id", tugasHandler.Update)                   // PUT /api/v1/tugas/:id
-			tugas.DELETE("/:id", tugasHandler.Delete)                // DELETE /api/v1/tugas/:id
-			tugas.DELETE("/:id/assign/:user_id", tugasHandler.UnassignUser) // DELETE /api/v1/tugas/:id/assign/:user_id
+			tugas.GET("", tugasHandler.GetAll)                              // GET /api/v1/tugas
+			tugas.GET("/:id", tugasHandler.GetByID)                         // GET /api/v1/tugas/:id
+			tugas.GET("/:id/assigned", penugasanHandler.GetAssignedUsers)   // GET /api/v1/tugas/:id/assigned
+			tugas.GET("/:id/komentar", komentarHandler.GetByTugasID)        // GET /api/v1/tugas/:id/komentar
+			tugas.POST("", tugasHandler.Create)                             // POST /api/v1/tugas
+			tugas.POST("/:id/assign/:userId", penugasanHandler.AssignUser)  // POST /api/v1/tugas/:id/assign/:userId
+			tugas.POST("/:id/assign-multiple", penugasanHandler.AssignMultipleUsers) // POST /api/v1/tugas/:id/assign-multiple
+			tugas.PUT("/:id", tugasHandler.Update)                          // PUT /api/v1/tugas/:id
+			tugas.DELETE("/:id", tugasHandler.Delete)                       // DELETE /api/v1/tugas/:id
+			tugas.DELETE("/:id/assign/:userId", penugasanHandler.UnassignUser) // DELETE /api/v1/tugas/:id/assign/:userId
 		}
 
 		// KOMENTAR ROUTES

@@ -41,6 +41,7 @@ type PenggunaUpdateRequest struct {
 	NamaDepan    *string `json:"nama_depan"`
 	NamaBelakang *string `json:"nama_belakang"`
 	Email        *string `json:"email"`
+	KataSandi    *string `json:"kata_sandi"`
 	Peran        *string `json:"peran"`
 	IsAktif      *bool   `json:"is_aktif"`
 }

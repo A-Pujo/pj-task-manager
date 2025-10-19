@@ -115,6 +115,10 @@ export interface Komentar {
   dibuat_pada: string;
 }
 
+export interface KomentarWithUser extends Komentar {
+  pengguna: Pengguna;
+}
+
 export interface CreateKomentarInput {
   pengguna_id: number;
   proyek_id?: number;
