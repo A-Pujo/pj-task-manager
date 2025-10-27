@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -14,12 +14,14 @@ import {
   X,
   Plus,
   Trash2,
+  Eye,
 } from "lucide-react";
 import { tugasApi } from "@/api/tugas";
 import { proyekApi } from "@/api/proyek";
 import { komentarApi } from "@/api/komentar";
 import { penggunaApi } from "@/api/pengguna";
 import { penugasanApi } from "@/api/penugasan";
+import { subtugasApi } from "@/api/subtugas";
 import toast from "react-hot-toast";
 import type {
   Tugas,
@@ -28,6 +30,9 @@ import type {
   Pengguna,
   UpdateTugasInput,
   CreateKomentarInput,
+  Subtugas,
+  CreateSubtugasInput,
+  UpdateSubtugasInput,
 } from "@/types";
 
 export default function TugasDetailPage() {
@@ -40,6 +45,7 @@ export default function TugasDetailPage() {
   const [komentar, setKomentar] = useState<KomentarWithUser[]>([]);
   const [assignedUsers, setAssignedUsers] = useState<Pengguna[]>([]);
   const [allUsers, setAllUsers] = useState<Pengguna[]>([]);
+  const [subtugas, setSubtugas] = useState<Subtugas[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Edit states
@@ -60,6 +66,22 @@ export default function TugasDetailPage() {
   const [isLogOpen, setIsLogOpen] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [currentUserId, setCurrentUserId] = useState<number>(0);
+
+  // Subtugas states
+  const [showSubtugasForm, setShowSubtugasForm] = useState(false);
+  const [subtugasFormData, setSubtugasFormData] = useState<CreateSubtugasInput>(
+    {
+      tugas_id: tugasId,
+      nama_subtugas: "",
+      deskripsi: "",
+      status: "Belum Dimulai",
+      prioritas: "Medium",
+      tanggal_mulai: "",
+      tanggal_deadline: "",
+      pengguna_id: undefined,
+      persentase_selesai: 0,
+    }
+  );
 
   useEffect(() => {
     // Get current user from localStorage
@@ -83,18 +105,33 @@ export default function TugasDetailPage() {
       const tugasData = await tugasApi.getById(tugasId);
       setTugas(tugasData);
 
-      const [proyekData, komentarData, assignedDataResponse, allUsersData] =
-        await Promise.all([
-          proyekApi.getById(tugasData.proyek_id),
-          komentarApi.getByTugasId(tugasId),
-          penugasanApi.getAssignedUsers(tugasId),
-          penggunaApi.getAll(),
-        ]);
+      const [
+        proyekData,
+        komentarData,
+        assignedDataResponse,
+        allUsersData,
+        subtugasData,
+      ] = await Promise.all([
+        proyekApi.getById(tugasData.proyek_id),
+        komentarApi.getByTugasId(tugasId),
+        penugasanApi.getAssignedUsers(tugasId),
+        penggunaApi.getAll(),
+        subtugasApi.getByTugasId(tugasId),
+      ]);
 
+      // Fetch subtugas separately with error handling
       setProyek(proyekData);
       setKomentar(komentarData);
       setAssignedUsers(assignedDataResponse.users);
       setAllUsers(allUsersData);
+      console.log("Subtugas data received:", subtugasData);
+      setSubtugas(subtugasData);
+
+      // Set form data tugas ID
+      setSubtugasFormData((prev) => ({
+        ...prev,
+        tugas_id: tugasData.tugas_id,
+      }));
 
       setEditedTugas({
         nama_tugas: tugasData.nama_tugas,
@@ -170,6 +207,81 @@ export default function TugasDetailPage() {
     }
   };
 
+  // Subtugas handlers
+  const handleCreateSubtugas = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!subtugasFormData.nama_subtugas.trim()) {
+      toast.error("Nama subtugas harus diisi!");
+      return;
+    }
+
+    try {
+      await subtugasApi.create(subtugasFormData);
+      toast.success("Subtugas berhasil dibuat");
+
+      // Reset form
+      setSubtugasFormData({
+        tugas_id: tugasId,
+        nama_subtugas: "",
+        deskripsi: "",
+        status: "Belum Dimulai",
+        prioritas: "Medium",
+        tanggal_mulai: "",
+        tanggal_deadline: "",
+        pengguna_id: undefined,
+        persentase_selesai: 0,
+      });
+
+      setShowSubtugasForm(false);
+      fetchData();
+    } catch (error: any) {
+      console.error("Error creating subtask:", error);
+      toast.error(error.response?.data?.message || "Gagal membuat subtugas");
+    }
+  };
+
+  const getPriorityColor = (prioritas: string) => {
+    switch (prioritas) {
+      case "Critical":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "High":
+        return "bg-orange-100 text-orange-800 border-orange-200";
+      case "Medium":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "Low":
+        return "bg-green-100 text-green-800 border-green-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Selesai":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "Dalam Proses":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "Ditunda":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "Belum Dimulai":
+        return "bg-gray-100 text-gray-800 border-gray-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getUserName = (penggunaId?: number) => {
+    if (!penggunaId) return "Tidak ada";
+    const user = allUsers.find((u) => u.pengguna_id === penggunaId);
+    return user ? `${user.nama_depan} ${user.nama_belakang}` : "Unknown";
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString("id-ID");
+  };
+
   const handleAddComment = async () => {
     if (!newComment.trim()) {
       toast.error("Komentar tidak boleh kosong");
@@ -210,7 +322,7 @@ export default function TugasDetailPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getTaskStatusColor = (status: string) => {
     switch (status) {
       case "Selesai":
         return "text-green-600 bg-green-50";
@@ -464,6 +576,347 @@ export default function TugasDetailPage() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Subtugas Section */}
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h2 className="text-xl font-bold text-gray-900">
+                  Subtugas ({subtugas?.length || 0})
+                </h2>
+                <button
+                  onClick={() => setShowSubtugasForm(!showSubtugasForm)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  {showSubtugasForm ? "Batal" : "Tambah Subtugas"}
+                </button>
+              </div>
+
+              {/* Form Tambah Subtugas */}
+              {showSubtugasForm && (
+                <div className="border-b border-gray-200 p-6">
+                  <form onSubmit={handleCreateSubtugas} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nama Subtugas *
+                      </label>
+                      <input
+                        type="text"
+                        value={subtugasFormData.nama_subtugas}
+                        onChange={(e) =>
+                          setSubtugasFormData((prev) => ({
+                            ...prev,
+                            nama_subtugas: e.target.value,
+                          }))
+                        }
+                        placeholder="Masukkan nama subtugas"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Deskripsi
+                      </label>
+                      <textarea
+                        value={subtugasFormData.deskripsi}
+                        onChange={(e) =>
+                          setSubtugasFormData((prev) => ({
+                            ...prev,
+                            deskripsi: e.target.value,
+                          }))
+                        }
+                        placeholder="Deskripsi subtugas (opsional)"
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Status
+                        </label>
+                        <select
+                          value={subtugasFormData.status}
+                          onChange={(e) =>
+                            setSubtugasFormData((prev) => ({
+                              ...prev,
+                              status: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="Belum Dimulai">Belum Dimulai</option>
+                          <option value="Dalam Proses">Dalam Proses</option>
+                          <option value="Selesai">Selesai</option>
+                          <option value="Ditunda">Ditunda</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Prioritas
+                        </label>
+                        <select
+                          value={subtugasFormData.prioritas}
+                          onChange={(e) =>
+                            setSubtugasFormData((prev) => ({
+                              ...prev,
+                              prioritas: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="Low">Low</option>
+                          <option value="Medium">Medium</option>
+                          <option value="High">High</option>
+                          <option value="Critical">Critical</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Assign ke User
+                        </label>
+                        <select
+                          value={subtugasFormData.pengguna_id?.toString() || ""}
+                          onChange={(e) =>
+                            setSubtugasFormData((prev) => ({
+                              ...prev,
+                              pengguna_id: e.target.value
+                                ? parseInt(e.target.value)
+                                : undefined,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="">Pilih user (opsional)</option>
+                          {allUsers.map((user) => (
+                            <option
+                              key={user.pengguna_id}
+                              value={user.pengguna_id.toString()}
+                            >
+                              {user.nama_depan} {user.nama_belakang}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Tanggal Mulai
+                        </label>
+                        <input
+                          type="date"
+                          value={subtugasFormData.tanggal_mulai}
+                          onChange={(e) =>
+                            setSubtugasFormData((prev) => ({
+                              ...prev,
+                              tanggal_mulai: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Tanggal Deadline
+                        </label>
+                        <input
+                          type="date"
+                          value={subtugasFormData.tanggal_deadline}
+                          onChange={(e) =>
+                            setSubtugasFormData((prev) => ({
+                              ...prev,
+                              tanggal_deadline: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => setShowSubtugasForm(false)}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={
+                          loading || !subtugasFormData.nama_subtugas.trim()
+                        }
+                        className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {loading ? "Menyimpan..." : "Tambah Subtugas"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Daftar Subtugas */}
+              <div className="p-6">
+                {!subtugas || subtugas.length === 0 ? (
+                  <div className="text-center py-8">
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Belum ada subtugas
+                    </h3>
+                    <p className="text-gray-500">
+                      Tambah subtugas untuk mengelola pekerjaan detail.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Nama Subtugas
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status & Prioritas
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Progress
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Assigned To
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Timeline
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Aksi
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {subtugas.map((item) => (
+                          <React.Fragment key={item.subtugas_id}>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="max-w-xs">
+                                  <div className="text-sm font-medium text-gray-900 truncate">
+                                    {item.nama_subtugas}
+                                  </div>
+                                  {item.deskripsi && (
+                                    <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                      {item.deskripsi}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="space-y-1">
+                                  <span
+                                    className={`inline-flex px-2 py-1 text-xs font-medium rounded-md border ${getStatusColor(
+                                      item.status
+                                    )}`}
+                                  >
+                                    {item.status}
+                                  </span>
+                                  <br />
+                                  <span
+                                    className={`inline-flex px-2 py-1 text-xs font-medium rounded-md border ${getPriorityColor(
+                                      item.prioritas
+                                    )}`}
+                                  >
+                                    {item.prioritas}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="w-full max-w-[120px]">
+                                  <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                                    <span>Progress</span>
+                                    <span className="font-medium">
+                                      {item.persentase_selesai}%
+                                    </span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                      style={{
+                                        width: `${item.persentase_selesai}%`,
+                                      }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900">
+                                  {getUserName(item.pengguna_id)}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-xs text-gray-600 space-y-1">
+                                  <div>
+                                    <span className="font-medium">Mulai:</span>
+                                    <br />
+                                    <span>
+                                      {formatDate(item.tanggal_mulai)}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">
+                                      Deadline:
+                                    </span>
+                                    <br />
+                                    <span
+                                      className={
+                                        item.tanggal_deadline &&
+                                        new Date(item.tanggal_deadline) <
+                                          new Date() &&
+                                        item.status !== "Selesai"
+                                          ? "text-red-600 font-medium"
+                                          : ""
+                                      }
+                                    >
+                                      {formatDate(item.tanggal_deadline)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button
+                                  onClick={() => {
+                                    console.log("Clicked subtugas item:", item);
+                                    console.log(
+                                      "Subtugas ID:",
+                                      item?.subtugas_id
+                                    );
+                                    if (item?.subtugas_id) {
+                                      router.push(
+                                        `/dashboard/subtugas/${item.subtugas_id}`
+                                      );
+                                    } else {
+                                      toast.error("ID subtugas tidak valid");
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:text-blue-700 transition-colors"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  Lihat Detail
+                                </button>
+                              </td>
+                            </tr>
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Activity Log */}

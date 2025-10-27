@@ -41,6 +41,7 @@ func main() {
 	tugasRepo := repository.NewTugasRepository(db.Pool)
 	komentarRepo := repository.NewKomentarRepository(db.Pool)
 	penugasanRepo := repository.NewPenugasanTugasRepository(db.Pool)
+	subtugasRepo := repository.NewSubtugasRepository(db.Pool)
 	log.Println("✅ Repositories initialized")
 
 	// 4. INITIALIZE HANDLERS (Controllers)
@@ -49,6 +50,7 @@ func main() {
 	tugasHandler := handlers.NewTugasHandler(tugasRepo)
 	komentarHandler := handlers.NewKomentarHandler(komentarRepo)
 	penugasanHandler := handlers.NewPenugasanTugasHandler(penugasanRepo)
+	subtugasHandler := handlers.NewSubtugasHandler(subtugasRepo)
 	authHandler := handlers.NewAuthHandler(penggunaRepo, cfg)
 	log.Println("✅ Handlers initialized")
 
@@ -65,7 +67,7 @@ func main() {
 	log.Println("✅ Middleware applied")
 
 	// 7. SETUP ROUTES
-	setupRoutes(router, penggunaHandler, proyekHandler, tugasHandler, komentarHandler, penugasanHandler, authHandler)
+	setupRoutes(router, penggunaHandler, proyekHandler, tugasHandler, komentarHandler, penugasanHandler, subtugasHandler, authHandler)
 	log.Println("✅ Routes configured")
 
 	// 8. CREATE HTTP SERVER
@@ -112,6 +114,7 @@ func setupRoutes(
 	tugasHandler *handlers.TugasHandler,
 	komentarHandler *handlers.KomentarHandler,
 	penugasanHandler *handlers.PenugasanTugasHandler,
+	subtugasHandler *handlers.SubtugasHandler,
 	authHandler *handlers.AuthHandler,
 ) {
 	// Health check endpoint
@@ -162,6 +165,7 @@ func setupRoutes(
 			tugas.GET("/:id", tugasHandler.GetByID)                         // GET /api/v1/tugas/:id
 			tugas.GET("/:id/assigned", penugasanHandler.GetAssignedUsers)   // GET /api/v1/tugas/:id/assigned
 			tugas.GET("/:id/komentar", komentarHandler.GetByTugasID)        // GET /api/v1/tugas/:id/komentar
+			tugas.GET("/:id/subtugas", subtugasHandler.GetByTugasID)        // GET /api/v1/tugas/:id/subtugas
 			tugas.POST("", tugasHandler.Create)                             // POST /api/v1/tugas
 			tugas.POST("/:id/assign/:userId", penugasanHandler.AssignUser)  // POST /api/v1/tugas/:id/assign/:userId
 			tugas.POST("/:id/assign-multiple", penugasanHandler.AssignMultipleUsers) // POST /api/v1/tugas/:id/assign-multiple
@@ -176,6 +180,15 @@ func setupRoutes(
 			komentar.GET("", komentarHandler.GetAll)          // GET /api/v1/komentar
 			komentar.POST("", komentarHandler.Create)         // POST /api/v1/komentar
 			komentar.DELETE("/:id", komentarHandler.Delete)   // DELETE /api/v1/komentar/:id
+		}
+
+		subtugas := v1.Group("/subtugas")
+		{
+			subtugas.GET("", subtugasHandler.GetAll)                 // GET /api/v1/subtugas
+			subtugas.GET("/:id", subtugasHandler.GetByID)			  // GET /api/v1/subtugas/:id
+			subtugas.POST("", subtugasHandler.Create)               // POST /api/v1/subtugas
+			subtugas.PUT("/:id", subtugasHandler.Update)			// PUT /api/v1/subtugas/:id
+			subtugas.DELETE("/:id", subtugasHandler.Delete)         // DELETE /api/v1/subtugas/:id
 		}
 	}
 }

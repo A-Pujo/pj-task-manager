@@ -10,6 +10,7 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
+  ChartAreaIcon,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -70,7 +71,14 @@ export default function Sidebar() {
       <nav className="flex-1 p-4 space-y-1">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          let isActive = false;
+          if (item.href === "/dashboard") {
+            isActive = pathname === item.href;
+          } else {
+            isActive = pathname
+              .substring(11)
+              .startsWith(item.href.substring(11));
+          }
 
           return (
             <Link

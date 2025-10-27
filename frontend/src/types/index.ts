@@ -97,6 +97,45 @@ export interface AssignUserInput {
   user_id: number;
 }
 
+// ==================== SUB TUGAS (Task) ====================
+export interface Subtugas {
+  subtugas_id: number;
+  tugas_id: number;
+  nama_subtugas: string;
+  deskripsi?: string;
+  status: string;
+  prioritas: string;
+  tanggal_mulai?: string;
+  tanggal_deadline?: string;
+  pengguna_id?: number;
+  persentase_selesai: number;
+  dibuat_pada: string;
+  diperbarui_pada?: string;
+}
+
+export interface CreateSubtugasInput {
+  tugas_id: number;
+  nama_subtugas: string;
+  deskripsi?: string;
+  status: string;
+  prioritas: string;
+  tanggal_mulai?: string;
+  tanggal_deadline?: string;
+  pengguna_id?: number;
+  persentase_selesai?: number;
+}
+
+export interface UpdateSubtugasInput {
+  nama_subtugas?: string;
+  deskripsi?: string;
+  status?: string;
+  prioritas?: string;
+  tanggal_mulai?: string;
+  tanggal_deadline?: string;
+  pengguna_id?: number;
+  persentase_selesai?: number;
+}
+
 // ==================== PENUGASAN TUGAS (Task Assignment) ====================
 export interface PenugasanTugas {
   penugasan_id: number;
